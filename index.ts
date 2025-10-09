@@ -114,16 +114,11 @@ class Idb{
         //新建一个事务插入数据（参数1:是将要处理的表可以是数组。参数2:处理模式（默认readonly只读 或 readwrite读写））
         this.store_ = this.db_.transaction([this.table_name], 'readwrite').objectStore([this.table_name]);
     };
-    //删除数据，删除主键==key的那条数据，不提供主键表示清空表
-    async del(key){
+    //清空表
+    async clear(){
         return new Promise((resolve, reject) => {
             if(this.model_ != 2){this.write_();}
-            let request = {};
-            if(key){
-                request = this.store_.delete(key);
-            }else{
-                request = this.store_.clear();
-            }
+            let request = this.store_.clear();
             request.onsuccess = (event)=>{
                 resolve(event.target.result);
             };
@@ -132,16 +127,37 @@ class Idb{
             };
         });
     }
-    //新增或更新数据，只有data表示新增数据，如果有 key 就表示通过主键更新数据
-    async put(data,key){
+    //删除数据，删除 主键==key 的那条数据
+    async del(key){
         return new Promise((resolve, reject) => {
             if(this.model_ != 2){this.write_();}
-            let request = '';
-            if(key){
-                request = this.store_.put(data,key);
-            }else{
-                request = this.store_.add(data);
+            let request = this.store_.delete(key);
+            request.onsuccess = (event)=>{
+                resolve(event.target.result);
+            };
+            request.onerror = (event)=>{
+                reject(event.target.error);
+            };
+        });
+    }
+    //新增数据
+    async add(data){
+        return new Promise((resolve, reject) => {
+            if(this.model_ != 2){this.write_();}
+            let request = this.store_.add(data);
+            request.onsuccess = (event)=>{
+                resolve(event.target.result);
             }
+            request.onerror = (event)=>{
+                reject(event.target.error);
+            }
+        });
+    }
+    //更新数据，更新 主键==key 的那条数据
+    async put(key,data){
+        return new Promise((resolve, reject) => {
+            if(this.model_ != 2){this.write_();}
+            let request = this.store_.put(data,key);
             request.onsuccess = (event)=>{
                 resolve(event.target.result);
             }
@@ -170,17 +186,17 @@ class Idb{
             };
         });
     }
-    //通过索引查找数据。k:索引名（前提是创建了索引）；只有 v1 表示模糊查找；如果有 v2 就是范围查询
-    async getF(k,v1,v2){
+    //通过索引查找数据。index:索引名（前提是创建了索引）；只有 v1 表示模糊查找；如果有 v2 就是范围查询
+    async getF(index,v1,v2){
         return new Promise((resolve, reject) => {
             if(this.model_ != 1){this.read_();}
             let data = [];
             let request = {};
             let cursor = {};
-            if(k){
-                const index = this.store_.index(k);
+            if(index){
+                const ii = this.store_.index(index);
                 if(v2){ //游标范围查询（适用于前缀匹配），从v1到v2之间的数据
-                    request = index.openCursor(IDBKeyRange.bound(v1, v2)); //openCursor参数1:查询范围；参数2:遍历方向(默认为下一个，prev为上一个)(两个参数都空为默认，表示所有数据升序遍历)
+                    request = ii.openCursor(IDBKeyRange.bound(v1, v2)); //openCursor参数1:查询范围；参数2:遍历方向(默认为下一个，prev为上一个)(两个参数都空为默认，表示所有数据升序遍历)
                     request.onsuccess = (event)=>{
                         cursor = event.target.result;
                         if (cursor) {
@@ -191,11 +207,11 @@ class Idb{
                     };
                 }else{ //模糊查找
                     const regex = new RegExp(v1, 'i'); //'i'表示不区分大小写
-                    request = index.openCursor();
+                    request = ii.openCursor();
                     request.onsuccess = (event)=>{
                         cursor = event.target.result;
                         if(cursor){
-                            if(regex.test(cursor.value[k])){
+                            if(regex.test(cursor.value[index])){
                                 data.push(cursor.value);
                             }
                             cursor.continue();
