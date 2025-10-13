@@ -19,22 +19,6 @@ class Itb{
         this.model_ = 2;
         this.store_ = this.db_.transaction([this.tb_name], 'readwrite').objectStore([this.tb_name]);
     };
-    //删除表
-    protected async delTable(){
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(this.db_['name'],this.db_['version']);
-            request.onupgradeneeded = (event)=>{
-                event.target.result.deleteObjectStore(this.tb_name);
-            }
-            request.onsuccess = (event)=>{
-                event.target.result.close();
-                resolve(event.target.result);
-            }
-            request.onerror = (event)=>{
-                reject(event.target.errorCode);
-            };
-        });
-    };
     //清空表
     async clear(){
         return new Promise((resolve, reject) => {
@@ -75,7 +59,7 @@ class Itb{
         });
     }
     //更新数据
-    async put(primary_key,data){
+    async put(data,primary_key){
         return new Promise((resolve, reject) => {
             if(this.model_ != 2){this.write_();}
             let request = this.store_.put(data,primary_key);
