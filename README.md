@@ -1,8 +1,8 @@
 # idb
-
-库操作:
+### 库操作:
+```javascript
     open(table,primary_key,index)
-        table 表名称
+        table 表名称 
             可以是数组(数组表示同时创建多个表)。如果是数组primary_key 与 index，由数组值定义 如: [
                 [table1,primary_key1,index1],
                 [table2,primary_key2,index2]
@@ -23,87 +23,76 @@
     delTable(table);
         删除表，传入要删除的表名
     示例:
-        export const a1 = new Idb('database1',1).open('table1',null,'name'); //打开或创建 database1存储库 与 table1存储对象，主键null表示自动管理，并创建普通索引name
-表操作:
-    import {a1} from "@/compss/ts/idb"
-        导入idb/index.ts构建的a1对象 如: export const a1 = new Idb('database1',1).open('table1',null,'name');
-    如果同一存储库，有多个存储对象，如: export const a1 = new Idb('database1',1).open([
+        export const a1 = new Idb('database1',1).open('table1',null,'name'); //打开或创建 database1存储库 与 table1存储对象；主键null表示自动管理；并创建name为普通索引
+```
+### 表操作:
+```javascript
+
+    选择将要操作的存储对象(如果仅一个存储对象，table_name可以为空):
+        use(table_name)
+    新增:
+        add({'name':'小明1'})
+    修改:
+        put({'id':1,'name':'小强1'}) //如果创建了id为主键索引，如open('table1','id','name')
+        put({'name':'小强1'}, 1) //第二个参数为:要修改的自动主键值，前提是没有手动创建主键索引，如open('table1',null,'name')
+        put({'name':'小强1'}) //同上，且第二个参数为空，表示新增一条数据
+    清空:
+        clear()
+    删除:
+        del(1) //参数为主键值
+    获取:
+        get(1) //参数为主键值
+        get('name','小明1') //通过索引名 name 获取 name==小明1，的那条数据
+    模糊查找:
+        getF('name','小明') //根据索引名name，搜索值包含小明的数据
+        getF('name','小明1','小明2') //根据索引名name，获取从小明1 到 小明2之间的数据
+    获取全部键:
+        getAllK()
+    获取全部数据:
+        getAll()
+    示例:
+        如果仅创建了单个存储对象，如: export const a1 = new Idb('database1',1).open('table1',null,'name');
+            调用:
+                a1.then(r=>{
+                    r.use().add({'name':'小明1'}).then(rr=>{
+                        console.log(rr);
+                    });
+                });
+            或:
+                a1.then(r=>{
+                    //表示选择存储对象 table1 对它进行 add 操作
+                    r.use('table1').add({'name':'小明1'}).then(rr=>{
+                        console.log(rr);
+                    });
+                });
+        如果同一存储库，创建了多个存储对象，如: export const a1 = new Idb('database1',1).open([
             ['table1',null,'name'],
             ['table2',null,'name']
         ]);
-        调用的时候需带上具体需要操作的表名:
-            a1.then(r=>{
-                r['table1'] //表示将要操作 table1 存储对象
-                r['table2'] //表示将要操作 table2 存储对象
-            });
-        示例:
-            如果仅创建了单个存储对象，如: export const a1 = new Idb('database1',1).open('table1',null,'name');
-                调用:
-                    a1.then(r=>{ 
-                        r.add({'name':'小明1'}).then(rr=>{
-                            console.log(rr);
-                        });
-                    });
-            如果同一存储库，创建了多个存储对象，如: export const a1 = new Idb('database1',1).open([
-                ['table1',null,'name'],
-                ['table2',null,'name']
-            ]);
-                调用:
-                    a1.then(r=>{
-                        r['table1'].add({'name':'小明1'}).then(rr=>{
-                            console.log(rr);
-                        });
-                        r['table2'].add({'name':'小明1'}).then(rr=>{
-                            console.log(rr);
-                        });
-                    });
-    全部功能:
-        新增数据:
-            r.add({'name':'小明1'}).then(rr=>{ console.log(rr); });
-        新增或修改:
-            r.put({'id':1,'name':'小明2','age':2}).then(rr=>{
-                console.log(rr);
-            });
-        清空:
-            r.clear().then(rr=>{
-                console.log(rr);
-            });
-        删除:
-            r.del(1).then(rr=>{
-                console.log(rr);
-            });
-        获取:
-            r.get(1).then(rr=>{
-                console.log(rr);
-            });
-            r.get('name','小明1').then(rr=>{
-                console.log(rr);
-            });
-        模糊查找:
-            r.getF('name','小明').then(rr=>{
-                console.log(rr);
-            });
-            r.getF('name','小明1','小明2').then(rr=>{
-                console.log(rr);
-            });
-        获取全部键:
-            r.getAllK().then(rr=>{
-                console.log(rr);
-            });
-        获取全部数据:
-            r.getAll().then(rr=>{
-                console.log(rr);
-            });
-    完整示例:
-        <script setup>
-            import {a1} from "@/compss/ts/idb";
-            import { onMounted } from "vue";
-
-            onMounted(() => {
+            调用:
                 a1.then(r=>{
-                    r.add({'id':1,'name':'小明1','age':1}).then(rr=>{
+                    //表示选择存储对象 table1 对它进行 add 操作
+                    r.use('table1').add({'name':'小明1'}).then(rr=>{
                         console.log(rr);
                     });
-                })
+                    //表示选择存储对象 table2 对它进行 add 操作
+                    r.use('table2').add({'name':'小明1'}).then(rr=>{
+                        console.log(rr);
+                    });
+                });
+```
+### 完整示例:
+```javascript
+<script setup>
+    import {a1} from "@/compss/ts/idb"; //export const a1 = new Idb('database1',1).open('table1',null,'name');
+    import { onMounted } from "vue";
+
+    onMounted(() => {
+        a1.then(r=>{
+            r.use().add({'name':'小明1'}).then(rr=>{
+                console.log(rr);
             });
-        </script>
+        })
+    });
+</script>
+```

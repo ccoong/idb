@@ -9,70 +9,6 @@ class Idb{
         this.db_name = db_name;
         this.version = version;
     }
-    //打开或创建库。table为表名称，primary_key为主键名，index为索引名(索引值可以是，字符串、数组、对象。假设index是 {'name':true} 表示创建一个名称为name的索引，true表示值不允许重复，false表示允许重复)
-    //创建多个表的示例：table=[['tb1','id','name'],['tb2','id','name']]（数组的第一个值为表名称，第二个为主键名，第三个为索引名）；primary_key=null；index=null
-    async open(table,primary_key,index){
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(this.db_name,this.version);
-            //版本号变化或首次创建时触发
-            request.onupgradeneeded = (event) => {
-                this.db_ = event.target.result;
-                if(Array.isArray(table[0])){
-                    table.forEach(v=>{
-                        this.createTable_(v[0],v[1],v[2]);
-                    });
-                }else if(typeof table === 'string'){
-                    this.createTable_(table,primary_key,index);
-                }
-            }
-            //成功回调
-            request.onsuccess = (event) => {
-                this.db_ = event.target.result;
-                let i=0;
-                for(i;i<this.db_.objectStoreNames.length;i++){
-                    this.tb_[this.db_.objectStoreNames[i]] = new Itb(this.db_,this.db_.objectStoreNames[i]);
-                }
-                if(i==1){
-                    resolve(this.tb_[this.db_.objectStoreNames[0]]);
-                }else{
-                    resolve(this.tb_);
-                }
-            }
-            //错误回调
-            request.onerror = (event) => {
-                reject(event.target.errorCode);
-            }
-        });
-    }
-    //删除库
-    async delDB(){
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.deleteDatabase(this.db_name);
-            request.onsuccess = (event)=>{
-                resolve(event.target.result);
-            }
-            request.onerror = (event)=>{
-                reject(event.target.errorCode);
-            };
-        });
-    }
-    //删除表
-    async delTable(tb_name){
-        return new Promise((resolve, reject) => {
-            //this.db_.close();
-            const request = indexedDB.open(this.db_name,this.version+1);
-            request.onupgradeneeded = (event)=>{
-                event.target.result.deleteObjectStore(tb_name);
-            }
-            request.onsuccess = (event)=>{
-                event.target.result.close();
-                resolve(event.target.result);
-            }
-            request.onerror = (event)=>{
-                reject(event.target.errorCode);
-            };
-        });
-    };
     //创建表，table_name表名称；primary_key主键名称；index索引名称
     protected createTable_(table_name,primary_key,index){
         //检查旧版本中是否已有需要的对象存储（表）
@@ -109,8 +45,76 @@ class Idb{
             }
         }
     }
-    //选择要操作的存储对象
-    /* use(tb_name){
+    /*
+    table 表名称
+        可以是数组(数组表示同时创建多个表)。如果是数组primary_key 与 index，由数组值定义 如: [
+            [table1,primary_key1,index1],
+            [table2,primary_key2,index2]
+        ]
+    primary_key 主键名称
+    index 索引名称(支持: 字符串、数组、对象)
+        ['name1','name2'] //数组的形式: 表示创建name1 与 name2索引，值允许重复
+        {'name1':true,'name2':false} //对象的形式: 表示创建两个索引，name1的值不允许重复，name2的值允许重复
+    */
+    async open(table,primary_key,index){
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.db_name,this.version);
+            //版本号变化或首次创建时触发
+            request.onupgradeneeded = (event) => {
+                this.db_ = event.target.result;
+                if(Array.isArray(table[0])){
+                    table.forEach(v=>{
+                        this.createTable_(v[0],v[1],v[2]);
+                    });
+                }else if(typeof table === 'string'){
+                    this.createTable_(table,primary_key,index);
+                }
+            }
+            //成功回调
+            request.onsuccess = (event) => {
+                this.db_ = event.target.result;
+                for(let i=0;i<this.db_.objectStoreNames.length;i++){
+                    this.tb_[this.db_.objectStoreNames[i]] = new Itb(this.db_,this.db_.objectStoreNames[i]);
+                }
+                resolve(this);
+            }
+            //错误回调
+            request.onerror = (event) => {
+                reject(event.target.errorCode);
+            }
+        });
+    }
+    //删除库
+    async delDB(){
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.deleteDatabase(this.db_name);
+            request.onsuccess = (event)=>{
+                resolve(event.target.result);
+            }
+            request.onerror = (event)=>{
+                reject(event.target.errorCode);
+            };
+        });
+    }
+    //删除表
+    async delTable(tb_name){
+        return new Promise((resolve, reject) => {
+            //this.db_.close();
+            const request = indexedDB.open(this.db_name,this.version+1);
+            request.onupgradeneeded = (event)=>{
+                event.target.result.deleteObjectStore(tb_name);
+            }
+            request.onsuccess = (event)=>{
+                event.target.result.close();
+                resolve(event.target.result);
+            }
+            request.onerror = (event)=>{
+                reject(event.target.errorCode);
+            };
+        });
+    };
+    //选择要操作的存储对象，tb_name为空则表示选择第一个存储对象
+    use(tb_name){
         if(tb_name){
             return this.tb_[tb_name];
         }else{
@@ -119,7 +123,7 @@ class Idb{
                 return this.tb_[tb_k[0]];
             }
         }
-    } */
+    }
 };
 
 export default Idb;
